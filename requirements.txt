@@ -3,7 +3,9 @@ git+https://github.com/KaidiXu/onnx2pytorch.git
 onnxconverter-common
 onnxoptimizer
 onnxsim
+onnxruntime
 protobuf
 skl2onnx
+sortedcontainers
 gurobipy
 mkl
