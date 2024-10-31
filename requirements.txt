@@ -1,0 +1,9 @@
+fsspec
+git+https://github.com/KaidiXu/onnx2pytorch.git
+onnxconverter-common
+onnxoptimizer
+onnxsim
+protobuf
+skl2onnx
+gurobipy
+mkl
