@@ -24,10 +24,14 @@ import gc
 import torch
 import numpy as np
 from collections import defaultdict
+import torchvision
+import torchvision.transforms as transforms
+import numpy as np
+from PIL import Image
 
 import arguments
 from auto_LiRPA import BoundedTensor
-from auto_LiRPA.perturbations import PerturbationLpNorm
+from auto_LiRPA.perturbations import PerturbationLpNorm, PerturbationLpNormWithRegion
 from auto_LiRPA.utils import stop_criterion_all, stop_criterion_batch_any
 from auto_LiRPA.operators.convolution import BoundConv
 from jit_precompile import precompile_jit_kernels
@@ -133,18 +137,26 @@ class ABCROWN:
                 if node.are_output_constraints_activated_for_layer(apply_output_constraints_to):
                     if isinstance(node, BoundConv) and node.mode == 'patches':
                         node.mode = 'matrix'
+            
+            node.mode = 'matrix'
 
         if isinstance(input_x, dict):
             # Traditional Lp norm case. Still passed in as an vnnlib variable, but it is passed
             # in as a dictionary.
-            ptb = PerturbationLpNorm(
+            ptb = PerturbationLpNormWithRegion(
                 norm=input_x['norm'],
                 eps=input_x['eps'], eps_min=input_x.get('eps_min', 0),
-                x_L=data_lb, x_U=data_ub)
+                x_L=data_lb, x_U=data_ub,square_size=arguments.Config['specification']['square_size'])
         else:
             norm = arguments.Config['specification']['norm']
             # Perturbation value for non-Linf perturbations, None for all other cases.
-            ptb = PerturbationLpNorm(norm=norm, x_L=data_lb, x_U=data_ub)
+            ptb = PerturbationLpNormWithRegion(
+                norm=norm,
+                x_L=data_lb,
+                x_U=data_ub,
+                eps=arguments.Config['specification']['epsilon'],
+                square_size=arguments.Config['specification']['square_size']
+            )
         x = BoundedTensor(data, ptb).to(data.device)
         output = model.net(x)
         print_model(model.net)
@@ -256,11 +268,22 @@ class ABCROWN:
         norm = arguments.Config['specification']['norm']
         if data_dict is not None:
             assert isinstance(data_dict['eps'], float)
-            ptb = PerturbationLpNorm(
-                norm=norm, eps=data_dict['eps'],
-                eps_min=data_dict.get('eps_min', 0), x_L=data_lb, x_U=data_ub)
+            ptb = PerturbationLpNormWithRegion(
+                norm=norm,
+                eps=data_dict['eps'],
+                eps_min=data_dict.get('eps_min', 0),
+                x_L=data_lb,
+                x_U=data_ub,
+                square_size=arguments.Config['specification']['square_size']
+            )
         else:
-            ptb = PerturbationLpNorm(norm=norm, x_L=data_lb, x_U=data_ub)
+            ptb = PerturbationLpNormWithRegion(
+                norm=norm,
+                x_L=data_lb,
+                x_U=data_ub,
+                eps=arguments.Config['specification']['epsilon'],
+                square_size=arguments.Config['specification']['square_size']
+            )
 
         if data is not None:
             data = data.to(self.model.device)
@@ -394,7 +417,9 @@ class ABCROWN:
 
             # FIXME Clean up.
             # Shape and type of rhs is very confusing
-            rhs = torch.tensor(rhs, device=arguments.Config['general']['device'],
+            # rhs = torch.tensor(rhs, device=arguments.Config['general']['device'],
+            #                 dtype=torch.get_default_dtype())
+            rhs = torch.tensor(rhs, device="cpu",
                             dtype=torch.get_default_dtype())
             if (arguments.Config['general']['enable_incomplete_verification']
                     and len(init_global_lb) > 1):
@@ -516,6 +541,9 @@ class ABCROWN:
         np.random.seed(arguments.Config['general']['seed'])
         torch.set_printoptions(precision=8)
         device = arguments.Config['general']['device']
+        if device == "cuda":
+            if not torch.cuda.is_available():
+                device = "cpu"
         if device != 'cpu':
             torch.cuda.manual_seed_all(arguments.Config['general']['seed'])
             # Always disable TF32 (precision is too low for verification).
@@ -528,7 +556,7 @@ class ABCROWN:
             torch.set_default_dtype(torch.float64)
         if arguments.Config['general']['precompile_jit']:
             precompile_jit_kernels()
-
+        
         bab_args = arguments.Config['bab']
         timeout_threshold = bab_args['timeout']
         select_instance = arguments.Config['data']['select_instance']

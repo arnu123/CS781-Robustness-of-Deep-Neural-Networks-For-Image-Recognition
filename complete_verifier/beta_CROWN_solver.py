@@ -21,7 +21,7 @@ import arguments
 import warnings
 
 from auto_LiRPA import BoundedModule, BoundedTensor
-from auto_LiRPA.perturbations import PerturbationLpNorm
+from auto_LiRPA.perturbations import PerturbationLpNorm, PerturbationLpNormWithRegion
 from auto_LiRPA.utils import (
         stop_criterion_placeholder, stop_criterion_all, reduction_str2func)
 
@@ -36,7 +36,7 @@ from heuristics.nonlinear import precompute_A
 
 
 class LiRPANet:
-    def __init__(self, model_ori, in_size, c=None, device=None,
+    def __init__(self, model_ori, in_size, c=None, device="cpu",
                  cplex_processes=None):
         """
         convert pytorch model to auto_LiRPA module

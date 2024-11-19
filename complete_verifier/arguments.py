@@ -241,6 +241,9 @@ class ConfigHandler:
         self.add_argument("--epsilon_min", type=float, default=0.,
                           help='Set an optional minimum perturbation size (Lp norm).',
                           hierarchy=h + ["epsilon_min"])
+        self.add_argument("--square_size", type=int, default=None,
+                          help='Size of the square region for perturbation.',
+                          hierarchy=h + ["square_size"])
         self.add_argument("--vnnlib_path", type=str, default=None,
                           help='Path to .vnnlib specification file. Will override any Lp/robustness verification arguments.', hierarchy=h + ["vnnlib_path"])
         self.add_argument("--vnnlib_path_prefix", type=str, default='',

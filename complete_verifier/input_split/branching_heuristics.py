@@ -17,7 +17,7 @@ Old branching heuristics, must be removed very soon (assigned to Kaidi).
 """
 
 import torch
-from auto_LiRPA import BoundedTensor, PerturbationLpNorm
+from auto_LiRPA import BoundedTensor, PerturbationLpNorm, PerturbationLpNormWithRegion
 import arguments
 
 
@@ -106,7 +106,7 @@ def input_split_heuristic_bf(net, x_L, x_U, dom_lb, thresholds, lA,
     new_x_U = new_x_U.view(-1, new_x_U.shape[-1])
     new_x = BoundedTensor(
         new_x_L,
-        ptb=PerturbationLpNorm(x_L=new_x_L, x_U=new_x_U))
+        ptb=PerturbationLpNormWithRegion(x_L=new_x_L, x_U=new_x_U))
     C = net.c.expand(new_x.shape[0], -1, -1)
     lb_ibp = net.net.compute_bounds(
         x=(new_x,), C=C, method='ibp', bound_upper=False)[0]

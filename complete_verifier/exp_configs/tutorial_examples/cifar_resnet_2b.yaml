@@ -11,6 +11,8 @@ data:
 specification:
   norm: .inf  # Linf norm (can also be 2 or 1).
   epsilon: 0.00784313725490196  # epsilon=2./255.
+  square_size: 5  # Size of the square region for perturbation.
+
 attack:  # Currently attack is only implemented for Linf norm.
   pgd_steps: 100  # Increase for a stronger attack. A PGD attack will be used before verification to filter on non-robust data examples.
   pgd_restarts: 30  # Increase for a stronger attack.
